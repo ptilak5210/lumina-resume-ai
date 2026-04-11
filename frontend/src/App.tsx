@@ -118,8 +118,7 @@ const App: React.FC = () => {
 
       setSavedResumes(prev => [saved, ...prev]);
       setResumeData(saved);
-      alert('Resume successfully parsed and mapped by AI!');
-      navigate('resume-editor');
+      navigate('ai-suggestions');  // Take user straight to ATS analysis
 
     } catch (err: any) {
       console.error('PDF parse/save error:', err);
@@ -200,7 +199,12 @@ const App: React.FC = () => {
           onDownload={handleDownloadPdf}
         />
       );
-      case 'ai-suggestions': return <AiSuggestions resume={resumeData} onUpdate={setResumeData} />;
+      case 'ai-suggestions': {
+        const resumeForAnalysis = (resumeData?.fullName || resumeData?.summary)
+          ? resumeData
+          : savedResumes[0] ?? resumeData;
+        return <AiSuggestions resume={resumeForAnalysis} onUpdate={setResumeData} />;
+      }
       case 'templates': return <TemplatesView onSelect={(resume) => { setResumeData(resume); navigate('resume-editor'); }} />;
       default: return <LandingPage onLoginClick={() => { setAuthMode('signup'); setIsAuthModalOpen(true); }} />;
     }

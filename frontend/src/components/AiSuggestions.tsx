@@ -108,13 +108,15 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [addedKeywords, setAddedKeywords] = useState<Set<string>>(new Set());
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
+  const hasResume = !!(resume?.fullName || resume?.summary || (resume?.experience?.length && resume.experience.length > 0));
 
   useEffect(() => {
-    if (resume) runAnalysis();
-  }, [resume?.id]);
+    // Run analysis whenever a resume with real content is present
+    if (hasResume) runAnalysis();
+  }, [resume?.id, resume?.fullName]);
 
   const runAnalysis = async () => {
-    if (!resume) return;
+    if (!resume || !hasResume) return;
     setLoading(true);
     setAtsResult(null);
     setAddedKeywords(new Set());
@@ -143,15 +145,16 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
     return { label: 'Critical', color: 'text-red-600', bg: 'bg-red-50' };
   };
 
-  if (!resume) {
+  if (!resume || !hasResume) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center max-w-sm">
           <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <Target className="w-10 h-10 text-slate-400" />
           </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-2">No Resume Selected</h2>
-          <p className="text-slate-500">Select or create a resume to run ATS analysis.</p>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">No Resume Found</h2>
+          <p className="text-slate-500 mb-4">Please upload a resume or create one to run ATS analysis.</p>
+          <p className="text-xs text-slate-400">Go to Dashboard → Upload Resume</p>
         </div>
       </div>
     );
