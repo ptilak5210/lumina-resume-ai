@@ -83,3 +83,25 @@ export interface AnalysisResult {
     readability: number;
   };
 }
+
+export interface ATSSuggestion {
+  title: string;
+  detail: string;
+  impact: 'high' | 'medium' | 'low';
+  section: string;
+}
+
+export interface ATSResult {
+  overallScore: number;
+  sectionScores: {
+    summary: number;
+    experience: number;
+    skills: number;
+    education: number;
+    completeness: number;
+  };
+  missingKeywords: string[];
+  presentKeywords: string[];
+  suggestions: ATSSuggestion[];
+  strengths: string[];
+}
