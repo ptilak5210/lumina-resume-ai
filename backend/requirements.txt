@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+psycopg2-binary
+python-dotenv
+flask-cors
+flask-jwt-extended
+PyJWT
+pdfminer.six
+werkzeug

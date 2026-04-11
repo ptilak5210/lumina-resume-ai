@@ -1,0 +1,7 @@
+{
+  "name": "Lumina Resume AI",
+  "description": "A modern, minimalist AI-powered resume builder that helps users parse, refine, and optimize their professional profiles using Gemini 3.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
