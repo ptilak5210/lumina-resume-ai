@@ -108,6 +108,7 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [addedKeywords, setAddedKeywords] = useState<Set<string>>(new Set());
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
+  const [error, setError] = useState<string | null>(null);
   const hasResume = !!(resume?.fullName || resume?.summary || (resume?.experience?.length && resume.experience.length > 0));
 
   useEffect(() => {
@@ -119,13 +120,18 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
     if (!resume || !hasResume) return;
     setLoading(true);
     setAtsResult(null);
+    setError(null);
     setAddedKeywords(new Set());
     setAppliedSuggestions(new Set());
     try {
       const result = await performATSAnalysis(resume);
+      if (!result || typeof result.overallScore !== 'number') {
+        throw new Error('Invalid response from AI — please try again.');
+      }
       setAtsResult(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error('ATS analysis failed', err);
+      setError(err?.message || 'AI analysis failed. Please check your API key or try again.');
     } finally {
       setLoading(false);
     }
@@ -197,6 +203,46 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
               <div className="text-center">
                 <p className="font-bold text-slate-800">Analyzing your resume...</p>
                 <p className="text-sm text-slate-500 mt-1">Checking ATS compatibility, keywords & more</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="bg-red-50 rounded-3xl border border-red-100 p-8 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-black text-red-800 mb-1">Analysis Failed</h3>
+                  <p className="text-red-600 text-sm leading-relaxed mb-4">{error}</p>
+                  <button
+                    onClick={runAnalysis}
+                    className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-700 transition-all"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Idle State — resume loaded but not yet analyzed */}
+          {!loading && !error && !atsResult && (
+            <div className="bg-white rounded-3xl border border-slate-100 p-12 flex flex-col items-center justify-center gap-4 shadow-sm">
+              <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center">
+                <Target className="w-8 h-8 text-violet-600" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-slate-800 mb-1">Ready to Analyze</p>
+                <p className="text-sm text-slate-500 mb-4">Click Re-analyze to get your ATS score and AI suggestions</p>
+                <button
+                  onClick={runAnalysis}
+                  className="bg-violet-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-violet-700 transition-all"
+                >
+                  Run ATS Analysis
+                </button>
               </div>
             </div>
           )}
