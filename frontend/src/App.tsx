@@ -94,8 +94,9 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file only.');
+    const isAllowed = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.docx');
+    if (!isAllowed) {
+      alert('Please upload a PDF or Modern Word Document (.docx) only.');
       return;
     }
 
@@ -117,6 +118,7 @@ const App: React.FC = () => {
 
       setSavedResumes(prev => [saved, ...prev]);
       setResumeData(saved);
+      alert('Resume successfully parsed and mapped by AI!');
       navigate('resume-editor');
 
     } catch (err: any) {
@@ -186,7 +188,7 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (activeTab) {
       case 'home': return <LandingPage onLoginClick={() => { setAuthMode('signup'); setIsAuthModalOpen(true); }} />;
-      case 'dashboard': return <DashboardView navigate={navigate} user={user!} resumes={savedResumes} fileRef={fileInputRef} onDownloadJson={downloadJson} onDelete={handleDeleteResume} />;
+      case 'dashboard': return <DashboardView navigate={navigate} user={user!} resumes={savedResumes} fileRef={fileInputRef} onDownloadJson={downloadJson} onDelete={handleDeleteResume} isParsing={isParsing} />;
       case 'resume-editor': return <ResumeBuilder data={resumeData} setData={setResumeData} onSave={() => setIsSaveModalOpen(true)} onDownloadJson={() => downloadJson(resumeData)} isGeneratingSummary={isGeneratingSummary} onGenerateSummary={handleGenerateSummary} />;
       case 'settings': return <SettingsView user={user!} onUpdateUser={setUser} />;
       case 'my-resumes': return (
@@ -226,7 +228,7 @@ const App: React.FC = () => {
       <Auth isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onLogin={setUser} initialView={authMode} />
       <SamplesModal isOpen={isSamplesModalOpen} onClose={() => setIsSamplesModalOpen(false)} onSelect={(s) => { setResumeData(s); navigate('resume-editor'); }} />
       <SaveModal isOpen={isSaveModalOpen} onClose={() => setIsSaveModalOpen(false)} onSave={(t) => { setSavedResumes([...savedResumes, { ...resumeData, title: t }]); setIsSaveModalOpen(false); }} />
-      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="application/pdf" title="Upload Resume" placeholder="Upload Resume" />
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="application/pdf,.docx" title="Upload Resume" placeholder="Upload Resume" />
     </div>
   );
 };

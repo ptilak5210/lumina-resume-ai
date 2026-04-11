@@ -7,3 +7,4 @@ flask-jwt-extended
 PyJWT
 pdfminer.six
 werkzeug
+google-generativeai

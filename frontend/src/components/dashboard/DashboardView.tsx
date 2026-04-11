@@ -1,7 +1,7 @@
 import React from 'react';
 import { FileText, Zap, Upload, Plus, Download, Trash2, Clock, Sparkles, ArrowUpRight } from 'lucide-react';
 
-export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson, onDelete }: any) => {
+export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson, onDelete, isParsing }: any) => {
   const avgScore = resumes.length
     ? Math.round(resumes.reduce((acc: number, r: any) => acc + (r.score || 0), 0) / resumes.length)
     : 0;
@@ -27,10 +27,12 @@ export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson
               {today}
             </span>
             <button
-              onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-2 text-sm font-bold border border-slate-200 rounded-xl px-4 py-2.5 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 shadow-sm"
+              onClick={() => !isParsing && fileRef.current?.click()}
+              disabled={isParsing}
+              className={`flex items-center gap-2 text-sm font-bold border border-slate-200 rounded-xl px-4 py-2.5 transition-all text-slate-700 shadow-sm ${isParsing ? 'bg-slate-100 opacity-70 cursor-wait' : 'bg-white hover:bg-slate-50 hover:border-slate-300'}`}
             >
-              <Upload className="w-4 h-4" /> Upload Resume
+              {isParsing ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent flex-shrink-0 animate-spin rounded-full" /> : <Upload className="w-4 h-4" />}
+              {isParsing ? 'Parsing AI...' : 'Upload Resume'}
             </button>
             <button
               onClick={() => navigate('resume-editor')}

@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, current_app
 from app import db
 from app.models.resume import Resume
-from app.services.pdf_parser import parse_resume_from_pdf
+
+from app.services.llm_parser import parse_resume_with_gemini_vision
 from app.services.supabase_auth import get_user_id_from_request, supabase_required
 import json
 
@@ -22,12 +23,19 @@ def parse_resume():
         return jsonify({'message': 'No file provided'}), 400
 
     file = request.files['file']
-    if not file.filename.lower().endswith('.pdf'):
-        return jsonify({'message': 'Only PDF files are accepted'}), 400
+    filename = file.filename.lower()
+    if not (filename.endswith('.pdf') or filename.endswith('.docx')):
+        return jsonify({'message': 'Only PDF and .docx files are accepted'}), 400
 
     try:
         pdf_bytes = file.read()
-        parsed = parse_resume_from_pdf(pdf_bytes)
+        
+        # Determine suffix to help Gemini API correctly detect MIME type locally
+        ext = '.pdf'
+        if filename.endswith('.docx'): ext = '.docx'
+        
+        # Gemini handles both standard PDFs and scanned images natively
+        parsed = parse_resume_with_gemini_vision(pdf_bytes, file_ext=ext)
         return jsonify({'data': parsed}), 200
     except Exception as e:
         current_app.logger.error(f'PDF parse error: {e}')
