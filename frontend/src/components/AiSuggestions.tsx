@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles, Zap, TrendingUp, CheckCircle2, AlertTriangle,
   RefreshCw, Plus, ChevronRight, Star, Target, BarChart3,
-  Loader2, ArrowUpRight, Shield, BookOpen, Briefcase, Award
+  Loader2, ArrowUpRight, Shield, BookOpen, Briefcase, Award, FileText, ChevronDown, Check
 } from 'lucide-react';
 import { ResumeData, ATSResult, ATSSuggestion } from '../types';
 import { resumeService } from '../services/resumeService';
@@ -12,7 +11,12 @@ import ResumePreview from './ResumePreview';
 interface AiSuggestionsProps {
   resume?: ResumeData;
   onUpdate?: (data: ResumeData) => void;
+  allResumes?: ResumeData[];
+  onSelectResume?: (resume: ResumeData) => void;
 }
+
+// Global cache so we don't lose the result when navigating away
+const globalAtsCache: { [resumeKey: string]: ATSResult } = {};
 
 // Circular score ring component
 const ScoreRing: React.FC<{ score: number; size?: number }> = ({ score, size = 160 }) => {
@@ -103,28 +107,47 @@ const ImpactBadge: React.FC<{ impact: 'high' | 'medium' | 'low' }> = ({ impact }
   );
 };
 
-const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
-  const [atsResult, setAtsResult] = useState<ATSResult | null>(null);
+const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate, allResumes, onSelectResume }) => {
+  const resumeKey = resume?.id || resume?.fullName || '';
+
+  // Initialize from cache or from backend-provided data
+  const [atsResult, setAtsResult] = useState<ATSResult | null>(
+    globalAtsCache[resumeKey] || (resume as any)?.atsResult || null
+  );
   const [loading, setLoading] = useState(false);
   const [addedKeywords, setAddedKeywords] = useState<Set<string>>(new Set());
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  // Track which resume ID was last analyzed — prevents re-run on navigation
-  const analyzedResumeIdRef = React.useRef<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const hasResume = !!(resume?.fullName || resume?.summary || (resume?.experience?.length && resume.experience.length > 0));
 
   useEffect(() => {
-    // Only run if this resume hasn't been analyzed yet in this session
-    const resumeKey = resume?.id || resume?.fullName || '';
-    if (hasResume && analyzedResumeIdRef.current !== resumeKey) {
-      runAnalysis();
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // If the active resume changes, update atsResult from cache/backend
+  useEffect(() => {
+    if (globalAtsCache[resumeKey]) {
+      setAtsResult(globalAtsCache[resumeKey]);
+    } else if ((resume as any)?.atsResult) {
+      globalAtsCache[resumeKey] = (resume as any).atsResult;
+      setAtsResult((resume as any).atsResult);
+    } else {
+      setAtsResult(null);
     }
-  }, [resume?.id, resume?.fullName]);
+  }, [resumeKey, resume]);
 
   const runAnalysis = async (forceRerun = false) => {
     if (!resume || !hasResume) return;
-    const resumeKey = resume?.id || resume?.fullName || '';
-    if (!forceRerun && analyzedResumeIdRef.current === resumeKey && atsResult) return;
+    if (!forceRerun && atsResult) return;
+    
     setLoading(true);
     setAtsResult(null);
     setError(null);
@@ -136,7 +159,8 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
         throw new Error('Invalid response from AI — please try again.');
       }
       setAtsResult(result);
-      analyzedResumeIdRef.current = resumeKey;
+      globalAtsCache[resumeKey] = result; // Cache it globally
+      
       // Save score back to DB so My Resumes + Dashboard show the real ATS score
       if (resume.id && onUpdate) {
         const updatedResume = { ...resume, score: result.overallScore };
@@ -191,18 +215,61 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
         <div className="max-w-2xl mx-auto space-y-8">
 
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-violet-600" />
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">ATS Analysis</h1>
+                  {atsResult && <ImpactBadge impact={atsResult.overallScore >= 75 ? 'high' : atsResult.overallScore >= 50 ? 'medium' : 'low'} />}
                 </div>
-                <h1 className="text-2xl font-black text-slate-900">ATS Analysis</h1>
+                {allResumes && allResumes.length > 0 ? (
+                  <div className="relative inline-block mt-3" ref={dropdownRef}>
+                    <div 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className={`flex items-center gap-3 bg-white border ${isDropdownOpen ? 'border-violet-500 ring-2 ring-violet-500/20' : 'border-slate-200'} shadow-sm rounded-xl pl-3 pr-4 py-2 cursor-pointer hover:border-violet-300 hover:shadow-violet-100/50 transition-all select-none`}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-4 h-4 text-violet-600" />
+                      </div>
+                      <div className="flex-1 min-w-[160px]">
+                        <p className="text-xs font-semibold text-slate-500 mb-0.5">Analyzing</p>
+                        <p className="text-sm font-bold text-slate-800 leading-none truncate">{resume?.title || resume?.fullName || 'Untitled Resume'}</p>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-violet-600' : ''}`} />
+                    </div>
+
+                    {isDropdownOpen && (
+                      <div className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="p-2 space-y-1">
+                          {allResumes.map(r => {
+                            const isSelected = r.id === resume?.id;
+                            return (
+                              <div
+                                key={r.id}
+                                onClick={() => {
+                                  if (!isSelected && onSelectResume) {
+                                    onSelectResume(r);
+                                  }
+                                  setIsDropdownOpen(false);
+                                }}
+                                className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-violet-50' : 'hover:bg-slate-50'}`}
+                              >
+                                <div>
+                                  <p className={`text-sm font-bold truncate ${isSelected ? 'text-violet-700' : 'text-slate-700'}`}>{r.title || r.fullName || 'Untitled Resume'}</p>
+                                </div>
+                                {isSelected && <Check className="w-4 h-4 text-violet-600 flex-shrink-0 ml-3" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm mt-2 ml-1">AI-powered resume intelligence for <span className="font-semibold text-slate-700">{resume?.fullName || 'your resume'}</span></p>
+                )}
               </div>
-              <p className="text-slate-500 text-sm ml-11">AI-powered resume intelligence for <span className="font-semibold text-slate-700">{resume.fullName || 'your resume'}</span></p>
-            </div>
-            <button
-              onClick={() => runAnalysis(true)}
+              <button
+                onClick={() => runAnalysis(true)}
               disabled={loading}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-md shadow-violet-200"
             >
@@ -236,7 +303,7 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
                   <h3 className="font-black text-red-800 mb-1">Analysis Failed</h3>
                   <p className="text-red-600 text-sm leading-relaxed mb-4">{error}</p>
                   <button
-                    onClick={runAnalysis}
+                    onClick={() => runAnalysis(true)}
                     className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-700 transition-all"
                   >
                     Try Again

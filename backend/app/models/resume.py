@@ -2,7 +2,6 @@ import json
 from datetime import datetime
 from app import db
 
-
 class Resume(db.Model):
     __tablename__ = 'resumes'
 
@@ -52,7 +51,19 @@ class Resume(db.Model):
             'certifications': json.loads(self.certifications or '[]'),
             'createdAt': self.created_at.strftime('%m/%d/%Y') if self.created_at else '',
             'updatedAt': self.updated_at.strftime('%m/%d/%Y') if self.updated_at else '',
+            'atsResult': self._get_ats_result()
         }
+
+    def _get_ats_result(self):
+        try:
+            from app.models.ats_score import AtsScore
+            ats = AtsScore.query.filter_by(resume_id=self.id).first()
+            if ats and ats.feedback:
+                parsed = json.loads(ats.feedback)
+                return parsed
+        except Exception:
+            pass
+        return None
 
     @staticmethod
     def from_dict(data: dict, user_id: str):

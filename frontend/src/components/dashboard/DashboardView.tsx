@@ -1,7 +1,10 @@
 import React from 'react';
-import { FileText, Zap, Upload, Plus, Download, Trash2, Clock, Sparkles, ArrowUpRight } from 'lucide-react';
+import { FileText, Zap, Upload, Plus, Download, Trash2, Clock, Sparkles, ArrowUpRight, X, Edit3 } from 'lucide-react';
+import ResumePreview from '../ResumePreview';
 
-export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson, onDelete, isParsing }: any) => {
+export const DashboardView = ({ navigate, user, resumes, fileRef, onDownload, onDelete, isParsing, onEdit }: any) => {
+  const [previewResume, setPreviewResume] = React.useState<any>(null);
+
   const avgScore = resumes.length
     ? Math.round(resumes.reduce((acc: number, r: any) => acc + (r.score || 0), 0) / resumes.length)
     : 0;
@@ -125,7 +128,7 @@ export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson
               {resumes.map((r: any) => (
                 <div
                   key={r.id}
-                  onClick={() => navigate('resume-editor')}
+                  onClick={() => setPreviewResume(r)}
                   className="group bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-lg hover:border-blue-200 hover:-translate-y-0.5 transition-all cursor-pointer relative overflow-hidden shadow-sm"
                 >
                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
@@ -133,8 +136,8 @@ export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson
                     <div className="w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center group-hover:bg-blue-600 transition-all duration-300">
                       <FileText className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.stopPropagation(); onDownloadJson(r); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                    <div className="flex gap-1 opacity-100 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); if(onDownload) onDownload(r); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Download PDF">
                         <Download className="w-4 h-4" />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
@@ -171,6 +174,56 @@ export const DashboardView = ({ navigate, user, resumes, fileRef, onDownloadJson
         </div>
 
       </div>
+
+      {/* ── Preview Modal ─────────────────────────────────────────────────── */}
+      {previewResume && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden relative">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white z-10 shrink-0">
+              <div>
+                <h3 className="font-black text-xl text-slate-800">{previewResume.title || previewResume.fullName || 'Resume Preview'}</h3>
+                <p className="text-sm font-medium text-slate-500 uppercase tracking-widest mt-0.5">{previewResume.theme || 'Modern'} Template</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const r = previewResume;
+                    setPreviewResume(null);
+                    if (onEdit) onEdit(r);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold transition-all"
+                >
+                  <Edit3 className="w-5 h-5" /> Edit Resume
+                </button>
+                <button
+                  onClick={() => { if (onDownload) onDownload(previewResume); }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl font-bold transition-all shadow-md shadow-blue-200"
+                >
+                  <Download className="w-5 h-5" /> Download PDF
+                </button>
+                <div className="w-px h-8 bg-slate-200 mx-2"></div>
+                <button 
+                  onClick={() => setPreviewResume(null)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Preview Area */}
+            <div className="flex-1 overflow-y-auto bg-slate-100/50 p-4 md:p-8 flex justify-center custom-scrollbar">
+              <div className="bg-white shadow-xl max-w-[800px] w-full min-h-[1056px] print:shadow-none print:w-full">
+                 <ResumePreview data={previewResume} />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

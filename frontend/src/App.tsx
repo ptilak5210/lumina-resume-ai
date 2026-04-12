@@ -187,7 +187,7 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (activeTab) {
       case 'home': return <LandingPage onLoginClick={() => { setAuthMode('signup'); setIsAuthModalOpen(true); }} />;
-      case 'dashboard': return <DashboardView navigate={navigate} user={user!} resumes={savedResumes} fileRef={fileInputRef} onDownloadJson={downloadJson} onDelete={handleDeleteResume} isParsing={isParsing} />;
+      case 'dashboard': return <DashboardView navigate={navigate} user={user!} resumes={savedResumes} fileRef={fileInputRef} onDownload={handleDownloadPdf} onEdit={(resume) => { setResumeData(resume); navigate('resume-editor'); }} onDelete={handleDeleteResume} isParsing={isParsing} />;
       case 'resume-editor': return <ResumeBuilder data={resumeData} setData={setResumeData} onSave={() => setIsSaveModalOpen(true)} onDownloadJson={() => downloadJson(resumeData)} isGeneratingSummary={isGeneratingSummary} onGenerateSummary={handleGenerateSummary} />;
       case 'settings': return <SettingsView user={user!} onUpdateUser={setUser} />;
       case 'my-resumes': return (
@@ -203,7 +203,17 @@ const App: React.FC = () => {
         const resumeForAnalysis = (resumeData?.fullName || resumeData?.summary)
           ? resumeData
           : savedResumes[0] ?? resumeData;
-        return <AiSuggestions resume={resumeForAnalysis} onUpdate={setResumeData} />;
+        return (
+          <AiSuggestions
+            resume={resumeForAnalysis}
+            allResumes={savedResumes}
+            onSelectResume={(selected) => setResumeData(selected)}
+            onUpdate={(updated) => {
+              setResumeData(updated);
+              setSavedResumes(prev => prev.map(r => r.id === updated.id ? updated : r));
+            }}
+          />
+        );
       }
       case 'templates': return <TemplatesView onSelect={(resume) => { setResumeData(resume); navigate('resume-editor'); }} />;
       default: return <LandingPage onLoginClick={() => { setAuthMode('signup'); setIsAuthModalOpen(true); }} />;

@@ -26,6 +26,32 @@ def analyze_ats():
 
     try:
         result = perform_ats_analysis(data)
+        
+        # Save to ats_scores permanently
+        resume_id = data.get('id')
+        if resume_id:
+            try:
+                from app.models.ats_score import AtsScore
+                from app.models.resume import Resume
+                # Convert string ID to int
+                r_id_int = int(resume_id)
+                score_record = AtsScore.query.filter_by(resume_id=r_id_int).first()
+                if not score_record:
+                    score_record = AtsScore(resume_id=r_id_int)
+                    db.session.add(score_record)
+                
+                score_record.score = result.get('overallScore', 0)
+                score_record.feedback = json.dumps(result)
+                
+                resume = Resume.query.filter_by(id=r_id_int, user_id=user_id).first()
+                if resume:
+                    resume.score = score_record.score
+                
+                db.session.commit()
+            except Exception as dbe:
+                db.session.rollback()
+                current_app.logger.error(f'Failed to save ATS data to DB: {dbe}')
+
         return jsonify(result), 200
     except Exception as e:
         current_app.logger.error(f'ATS analysis error: {e}')
