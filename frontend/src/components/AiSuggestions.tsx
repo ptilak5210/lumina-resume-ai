@@ -109,15 +109,22 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
   const [addedKeywords, setAddedKeywords] = useState<Set<string>>(new Set());
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  // Track which resume ID was last analyzed — prevents re-run on navigation
+  const analyzedResumeIdRef = React.useRef<string | null>(null);
   const hasResume = !!(resume?.fullName || resume?.summary || (resume?.experience?.length && resume.experience.length > 0));
 
   useEffect(() => {
-    // Run analysis whenever a resume with real content is present
-    if (hasResume) runAnalysis();
+    // Only run if this resume hasn't been analyzed yet in this session
+    const resumeKey = resume?.id || resume?.fullName || '';
+    if (hasResume && analyzedResumeIdRef.current !== resumeKey) {
+      runAnalysis();
+    }
   }, [resume?.id, resume?.fullName]);
 
-  const runAnalysis = async () => {
+  const runAnalysis = async (forceRerun = false) => {
     if (!resume || !hasResume) return;
+    const resumeKey = resume?.id || resume?.fullName || '';
+    if (!forceRerun && analyzedResumeIdRef.current === resumeKey && atsResult) return;
     setLoading(true);
     setAtsResult(null);
     setError(null);
@@ -129,9 +136,20 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
         throw new Error('Invalid response from AI — please try again.');
       }
       setAtsResult(result);
+      analyzedResumeIdRef.current = resumeKey;
+      // Save score back to DB so My Resumes + Dashboard show the real ATS score
+      if (resume.id && onUpdate) {
+        const updatedResume = { ...resume, score: result.overallScore };
+        onUpdate(updatedResume);
+        try {
+          await resumeService.update(resume.id, updatedResume);
+        } catch (saveErr) {
+          console.warn('Could not save ATS score to DB:', saveErr);
+        }
+      }
     } catch (err: any) {
       console.error('ATS analysis failed', err);
-      setError(err?.message || 'AI analysis failed. Please check your API key or try again.');
+      setError(err?.response?.data?.message || err?.message || 'AI analysis failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -184,7 +202,7 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
               <p className="text-slate-500 text-sm ml-11">AI-powered resume intelligence for <span className="font-semibold text-slate-700">{resume.fullName || 'your resume'}</span></p>
             </div>
             <button
-              onClick={runAnalysis}
+              onClick={() => runAnalysis(true)}
               disabled={loading}
               className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-md shadow-violet-200"
             >
@@ -238,7 +256,7 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
                 <p className="font-bold text-slate-800 mb-1">Ready to Analyze</p>
                 <p className="text-sm text-slate-500 mb-4">Click Re-analyze to get your ATS score and AI suggestions</p>
                 <button
-                  onClick={runAnalysis}
+                  onClick={() => runAnalysis(true)}
                   className="bg-violet-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-violet-700 transition-all"
                 >
                   Run ATS Analysis
