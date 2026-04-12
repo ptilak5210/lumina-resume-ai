@@ -1,12 +1,12 @@
 import React from 'react';
 import { ArrowRight, PlayCircle, Star, ShieldCheck, FileText, CheckCircle2 } from 'lucide-react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, Variants } from 'framer-motion';
 
 interface Props {
   onLoginClick: () => void;
 }
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -17,9 +17,9 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100, damping: 15 } }
 };
 
 export const Hero: React.FC<Props> = ({ onLoginClick }) => {
@@ -166,7 +166,7 @@ export const Hero: React.FC<Props> = ({ onLoginClick }) => {
               initial={{ scale: 0 }}
               animate={{ scale: 1, y: [-5, 5, -5] }}
               transition={{ 
-                scale: { type: 'spring', delay: 1.2 }, 
+                scale: { type: 'spring' as const, delay: 1.2 }, 
                 y: { duration: 5, ease: "easeInOut", repeat: Infinity, delay: 1 } 
               }}
               className="absolute -right-4 top-12 glass-card rounded-2xl p-4 flex items-center gap-4 z-30 transform hover:scale-105 transition-transform cursor-default"
@@ -190,7 +190,7 @@ export const Hero: React.FC<Props> = ({ onLoginClick }) => {
               initial={{ scale: 0 }}
               animate={{ scale: 1, y: [5, -5, 5] }}
               transition={{ 
-                scale: { type: 'spring', delay: 1.5 }, 
+                scale: { type: 'spring' as const, delay: 1.5 }, 
                 y: { duration: 6, ease: "easeInOut", repeat: Infinity, delay: 2 } 
               }}
               className="absolute right-10 bottom-20 bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-[0_20px_40px_-10px_rgba(99,102,241,0.2)] ring-1 ring-indigo-500/20 flex gap-3 z-30"

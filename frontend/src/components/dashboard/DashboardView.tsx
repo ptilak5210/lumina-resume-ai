@@ -2,8 +2,21 @@ import React from 'react';
 import { FileText, Zap, Upload, Plus, Download, Trash2, Clock, Sparkles, ArrowUpRight, X, Edit3 } from 'lucide-react';
 import ResumePreview from '../ResumePreview';
 
-export const DashboardView = ({ navigate, user, resumes, fileRef, onDownload, onDelete, isParsing, onEdit }: any) => {
-  const [previewResume, setPreviewResume] = React.useState<any>(null);
+import { User, ResumeData } from '../types';
+
+interface DashboardProps {
+  navigate: (view: string) => void;
+  user: User | null;
+  resumes: ResumeData[];
+  fileRef: React.RefObject<HTMLInputElement>;
+  onDownload: (resume: ResumeData) => void;
+  onDelete: (id: string) => void;
+  isParsing: boolean;
+  onEdit: (resume: ResumeData) => void;
+}
+
+export const DashboardView: React.FC<DashboardProps> = ({ navigate, user, resumes, fileRef, onDownload, onDelete, isParsing, onEdit }) => {
+  const [previewResume, setPreviewResume] = React.useState<ResumeData | null>(null);
 
   const avgScore = resumes.length
     ? Math.round(resumes.reduce((acc: number, r: any) => acc + (r.score || 0), 0) / resumes.length)

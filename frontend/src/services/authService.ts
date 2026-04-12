@@ -14,7 +14,6 @@ function toAppUser(sbUser: any, dbUser?: any): User {
     subscription_tier: dbUser?.subscription_tier,
     email_notifications: dbUser?.email_notifications,
     marketing_emails: dbUser?.marketing_emails,
-    created_at: sbUser.created_at || new Date().toISOString(),
   };
 }
 

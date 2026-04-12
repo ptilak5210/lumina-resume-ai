@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Sparkles, Zap, TrendingUp, CheckCircle2, AlertTriangle,
+  Sparkles, Zap, CheckCircle2, AlertTriangle,
   RefreshCw, Plus, ChevronRight, Star, Target, BarChart3,
-  Loader2, ArrowUpRight, Shield, BookOpen, Briefcase, Award, FileText, ChevronDown, Check
+  Loader2, Shield, BookOpen, Briefcase, Award, FileText, ChevronDown, Check
 } from 'lucide-react';
 import { ResumeData, ATSResult, ATSSuggestion } from '../types';
 import { resumeService } from '../services/resumeService';

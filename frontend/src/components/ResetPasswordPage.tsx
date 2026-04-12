@@ -42,7 +42,7 @@ const ResetPasswordPage: React.FC<Props> = ({ onSuccess }) => {
         setError(null);
 
         try {
-            await authService.resetPassword(token, password);
+            await authService.resetPassword(password);
             setSuccess(true);
             // Optional: Auto redirect after few seconds, but button is safer
         } catch (err: any) {

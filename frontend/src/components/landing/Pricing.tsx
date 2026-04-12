@@ -84,12 +84,6 @@ export const Pricing: React.FC = () => {
                     <span className={`text-sm font-medium ${plan.highlighted ? 'text-slate-300' : 'text-slate-700'}`}>{feature}</span>
                   </li>
                 ))}
-                {plan.missingFeatures && plan.missingFeatures.map((feature, i) => (
-                  <li key={`m-${i}`} className="flex items-center gap-3 opacity-50">
-                    <X className="w-5 h-5 shrink-0 text-slate-400" />
-                    <span className="text-sm font-medium text-slate-500 line-through">{feature}</span>
-                  </li>
-                ))}
               </ul>
 
               <motion.button 
