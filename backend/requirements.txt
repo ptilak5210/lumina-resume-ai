@@ -8,3 +8,4 @@ PyJWT
 pdfminer.six
 werkzeug
 google-generativeai
+gunicorn
