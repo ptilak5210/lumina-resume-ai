@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles, Zap, TrendingUp, CheckCircle2, AlertTriangle,
   RefreshCw, Plus, ChevronRight, Star, Target, BarChart3,
   Loader2, ArrowUpRight, Shield, BookOpen, Briefcase, Award
 } from 'lucide-react';
 import { ResumeData, ATSResult, ATSSuggestion } from '../types';
-import { performATSAnalysis } from '../services/geminiService';
+import { resumeService } from '../services/resumeService';
 import ResumePreview from './ResumePreview';
 
 interface AiSuggestionsProps {
@@ -124,7 +124,7 @@ const AiSuggestions: React.FC<AiSuggestionsProps> = ({ resume, onUpdate }) => {
     setAddedKeywords(new Set());
     setAppliedSuggestions(new Set());
     try {
-      const result = await performATSAnalysis(resume);
+      const result = await resumeService.analyzeATS(resume);
       if (!result || typeof result.overallScore !== 'number') {
         throw new Error('Invalid response from AI — please try again.');
       }

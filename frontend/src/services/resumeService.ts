@@ -1,6 +1,7 @@
 import api from './api';
 import { supabase } from './supabase';
 import { ResumeData } from '../types';
+import type { ATSResult } from '../types';
 
 /** Get current Supabase access token */
 async function getToken(): Promise<string | null> {
@@ -21,6 +22,12 @@ export const resumeService = {
       },
     });
     return res.data.data;
+  },
+
+  /** Run ATS analysis via backend (uses gemini-2.5-flash — no quota issues) */
+  async analyzeATS(resume: ResumeData): Promise<ATSResult> {
+    const res = await api.post<ATSResult>('/resumes/analyze-ats', resume);
+    return res.data;
   },
 
   /** Get all resumes for the logged-in user */
@@ -46,3 +53,4 @@ export const resumeService = {
     await api.delete(`/resumes/${id}`);
   },
 };
+

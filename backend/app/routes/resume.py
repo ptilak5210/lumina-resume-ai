@@ -3,10 +3,33 @@ from app import db
 from app.models.resume import Resume
 
 from app.services.llm_parser import parse_resume_with_gemini_vision
+from app.services.ats_analyzer import perform_ats_analysis
 from app.services.supabase_auth import get_user_id_from_request, supabase_required
 import json
 
 resume_bp = Blueprint('resume', __name__)
+
+
+# ── ATS Analysis ──────────────────────────────────────────────────────────────
+
+@resume_bp.route('/analyze-ats', methods=['POST'])
+@supabase_required
+def analyze_ats():
+    """Takes resume JSON → runs Gemini ATS analysis → returns structured result."""
+    user_id = get_user_id_from_request()
+    if not user_id:
+        return jsonify({'message': 'Authentication required'}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'No resume data provided'}), 400
+
+    try:
+        result = perform_ats_analysis(data)
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.error(f'ATS analysis error: {e}')
+        return jsonify({'message': str(e)}), 500
 
 
 # ── Parse PDF ────────────────────────────────────────────────────────────────
