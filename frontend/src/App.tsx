@@ -215,7 +215,39 @@ const App: React.FC = () => {
           />
         );
       }
-      case 'templates': return <TemplatesView onSelect={(resume) => { setResumeData(resume); navigate('resume-editor'); }} />;
+      case 'templates': return (
+        <TemplatesView 
+          resumes={savedResumes}
+          onApplyTemplate={(theme, resumeId) => {
+            if (resumeId) {
+              const existing = savedResumes.find(r => r.id === resumeId);
+              if (existing) {
+                setResumeData({ ...existing, theme });
+              }
+            } else {
+              setResumeData({
+                id: crypto.randomUUID(),
+                title: 'New Resume',
+                fullName: '',
+                email: '',
+                phone: '',
+                location: '',
+                linkedin: '',
+                website: '',
+                summary: '',
+                experience: [],
+                education: [],
+                skills: [],
+                projects: [],
+                certifications: [],
+                theme: theme,
+                createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              });
+            }
+            navigate('resume-editor');
+          }}
+        />
+      );
       default: return <LandingPage onLoginClick={() => { setAuthMode('signup'); setIsAuthModalOpen(true); }} />;
     }
   };

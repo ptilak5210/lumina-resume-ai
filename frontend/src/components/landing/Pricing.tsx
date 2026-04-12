@@ -4,33 +4,31 @@ import { motion } from 'framer-motion';
 
 const plans = [
   {
-    name: "Free",
-    price: "$0",
-    description: "Perfect for testing the waters and creating a basic profile.",
-    features: ["1 Basic Resume", "Standard Templates", "Community Support"],
-    missingFeatures: ["AI Bullet Generator", "ATS Score Checking", "Unlimited Resumes", "Premium ATS-Templates"],
+    name: "Monthly",
+    price: "₹249",
+    period: "/month",
+    description: "Full access to all AI features with a flexible monthly cycle.",
+    features: ["Unlimited AI Generation", "All Premium Templates", "Instant ATS Score Checking", "Cover Letter AI Builder", "Basic Support"],
     highlighted: false,
-    cta: "Get Started Free"
+    cta: "Subscribe Monthly"
   },
   {
-    name: "Pro",
-    price: "$15",
-    period: "/month",
-    description: "Ideal for serious job seekers needing an immediate competitive edge.",
-    features: ["Unlimited Resumes", "All Premium Templates", "Unlimited AI Generation", "Instant ATS Score Checking", "Cover Letter Builder", "Priority Support"],
-    missingFeatures: [],
+    name: "Yearly",
+    price: "₹1,499",
+    period: "/year",
+    description: "The most popular choice for long-term career growth.",
+    features: ["Everything in Monthly", "14-Day Free Trial", "50% Savings vs Monthly", "Early Access to New Features", "AI Resume Translation", "Expert Review Credit"],
     highlighted: true,
-    cta: "Start Pro Trial"
+    cta: "Start 14-Day Free Trial"
   },
   {
     name: "Lifetime",
-    price: "$99",
+    price: "₹2,499",
     period: " once",
-    description: "One-time payment. Never worry about your resume ever again.",
-    features: ["Everything in Pro", "Forever Access", "1-on-1 Career Review", "Exclusive Custom Designs", "Early Access to New Tools"],
-    missingFeatures: [],
+    description: "One-time investment. Own your career tools forever.",
+    features: ["Everything in Pro", "Forever Access", "1-on-1 Career Review", "Exclusive Custom Designs", "Private Discord Access", "Beta Tester Badge"],
     highlighted: false,
-    cta: "Get Lifetime"
+    cta: "Get Lifetime Access"
   }
 ];
 

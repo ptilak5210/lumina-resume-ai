@@ -138,3 +138,85 @@ def social_login():
         'token': access_token,
         'user': user.to_dict()
     }), 200
+
+# ─── SETTINGS ENDPOINTS ───────────────────────────────────────────────────────
+
+@auth_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user: return jsonify({'message': 'User not found'}), 404
+
+    data = request.get_json()
+    if 'name' in data: user.name = data['name']
+    if 'title' in data: user.title = data['title']
+    if 'location' in data: user.location = data['location']
+    if 'bio' in data: user.bio = data['bio']
+    if 'avatar_url' in data: user.avatar_url = data['avatar_url']
+
+    db.session.commit()
+    return jsonify({'message': 'Profile updated successfully', 'user': user.to_dict()}), 200
+
+
+@auth_bp.route('/password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user: return jsonify({'message': 'User not found'}), 404
+
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({'message': 'Both current and new passwords are required'}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({'message': 'Incorrect current password'}), 401
+
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({'message': 'Password changed successfully'}), 200
+
+
+@auth_bp.route('/account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user: return jsonify({'message': 'User not found'}), 404
+
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': 'Account deleted successfully'}), 200
+
+
+@auth_bp.route('/notifications', methods=['PUT'])
+@jwt_required()
+def update_notifications():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user: return jsonify({'message': 'User not found'}), 404
+
+    data = request.get_json()
+    if 'email_notifications' in data: 
+        user.email_notifications = data['email_notifications']
+    if 'marketing_emails' in data: 
+        user.marketing_emails = data['marketing_emails']
+
+    db.session.commit()
+    return jsonify({'message': 'Notification preferences updated', 'user': user.to_dict()}), 200
+
+
+@auth_bp.route('/subscribe', methods=['POST'])
+@jwt_required()
+def update_subscription():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user: return jsonify({'message': 'User not found'}), 404
+
+    user.subscription_tier = 'pro'
+    db.session.commit()
+    return jsonify({'message': 'Upgraded to Pro successfully', 'user': user.to_dict()}), 200

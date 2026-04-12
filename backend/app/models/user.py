@@ -13,6 +13,13 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
+    title = db.Column(db.String(100), nullable=True)
+    location = db.Column(db.String(100), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
+    avatar_url = db.Column(db.String(256), nullable=True)
+    subscription_tier = db.Column(db.String(20), default='free')
+    email_notifications = db.Column(db.Boolean, default=True)
+    marketing_emails = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -25,5 +32,13 @@ class User(db.Model):
             'id': self.id,
             'name': self.name,
             'email': self.email,
+            'role': self.role,
+            'title': self.title,
+            'location': self.location,
+            'bio': self.bio,
+            'avatar_url': self.avatar_url,
+            'subscription_tier': self.subscription_tier,
+            'email_notifications': self.email_notifications,
+            'marketing_emails': self.marketing_emails,
             'created_at': self.created_at.isoformat()
         }

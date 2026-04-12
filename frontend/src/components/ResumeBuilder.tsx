@@ -599,8 +599,8 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
                 </div>
 
                 {/* Preview Canvas */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-8 flex justify-center items-start">
-                    <div className={`transform transition-all origin-top ${isPreviewExpanded ? 'scale-100' : 'scale-[0.65]'} w-full max-w-[850px]`}>
+                <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 flex justify-center items-start custom-scrollbar">
+                    <div className={`transition-all duration-300 w-full ${isPreviewExpanded ? 'max-w-[1000px]' : 'max-w-[850px]'}`}>
                         <ResumePreview data={data} />
                     </div>
                 </div>

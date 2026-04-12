@@ -68,7 +68,7 @@ const ResumePreview: React.FC<Props> = ({ data }) => {
   };
 
   return (
-    <div className={`resume-container bg-white shadow-2xl rounded-sm p-12 min-h-[1056px] w-full max-w-[816px] mx-auto leading-relaxed border border-slate-100 print:shadow-none print:border-none print:p-0 ${config.container}`}>
+    <div className={`resume-container bg-white shadow-2xl md:shadow-[0_8px_40px_rgb(0,0,0,0.08)] rounded-xl sm:p-8 p-6 md:p-12 w-full mx-auto leading-relaxed border border-slate-100 print:shadow-none print:border-none print:p-0 print:min-h-[1056px] print:w-[816px] print:max-w-none ${config.container}`}>
 
       {/* Header */}
       <header className={config.header}>

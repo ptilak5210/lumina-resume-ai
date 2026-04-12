@@ -3,7 +3,13 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
+  avatar_url?: string;
+  title?: string;
+  location?: string;
+  bio?: string;
+  subscription_tier?: string;
+  email_notifications?: boolean;
+  marketing_emails?: boolean;
 }
 
 export type AppView =
