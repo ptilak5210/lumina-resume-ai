@@ -9,3 +9,4 @@ pdfminer.six
 werkzeug
 google-generativeai
 gunicorn
+python-docx
