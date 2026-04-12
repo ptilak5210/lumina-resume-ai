@@ -11,7 +11,7 @@ def configure_gemini():
     genai.configure(api_key=api_key)
 
 
-ATS_MODEL = 'gemini-2.5-flash'
+ATS_MODEL = 'gemini-2.0-flash'
 
 
 def perform_ats_analysis(resume_data: dict) -> dict:
