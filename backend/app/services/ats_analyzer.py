@@ -1,27 +1,68 @@
 import os
 import json
 import google.generativeai as genai
-from flask import current_app
+
+# ── KEY ROTATION POOL ─────────────────────────────────────────────────────────
+def _load_api_keys() -> list[str]:
+    """Load all non-empty Gemini API keys from env in priority order."""
+    keys = []
+    for i in range(1, 5):
+        k = os.environ.get(f"GEMINI_API_KEY_{i}", "").strip()
+        if k:
+            keys.append(k)
+    fallback = os.environ.get("GEMINI_API_KEY", "").strip()
+    if fallback and fallback not in keys:
+        keys.append(fallback)
+    return keys
 
 
-def configure_gemini():
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key or api_key == "your_gemini_api_key_here":
-        raise ValueError("GEMINI_API_KEY is not set in the environment.")
-    genai.configure(api_key=api_key)
+ATS_MODEL = 'gemini-2.5-flash'
 
 
-ATS_MODEL = 'gemini-2.0-flash'
+def _call_with_rotation(prompt: str) -> str:
+    """Try each API key in order; rotate on 429 quota errors."""
+    keys = _load_api_keys()
+    if not keys:
+        raise ValueError("No GEMINI_API_KEY set in environment.")
+
+    last_error = None
+    for idx, key in enumerate(keys):
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel(ATS_MODEL)
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            raw = response.text.strip()
+            # Strip markdown code fences if present
+            if raw.startswith("```json"):
+                raw = raw[7:]
+            elif raw.startswith("```"):
+                raw = raw[3:]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+            return raw.strip()
+
+        except Exception as e:
+            err_str = str(e)
+            # Only rotate on quota/rate-limit errors
+            if "429" in err_str or "quota" in err_str.lower() or "ResourceExhausted" in type(e).__name__:
+                print(f"[ATS] Key {idx+1}/{len(keys)} quota exhausted — rotating to next key...")
+                last_error = e
+                continue
+            else:
+                raise  # Non-quota error — raise immediately
+
+    raise last_error or RuntimeError("All API keys exhausted their quota.")
 
 
 def perform_ats_analysis(resume_data: dict) -> dict:
-    """Uses Gemini 2.5 Flash to perform deep ATS analysis on a resume dict.
-    Returns structured ATSResult matching the frontend ATSResult interface."""
-    configure_gemini()
-    model = genai.GenerativeModel(ATS_MODEL)
-
-    exp = resume_data.get('experience', [])
-    edu = resume_data.get('education', [])
+    """Run ATS analysis using Gemini with automatic key rotation on quota errors."""
+    exp  = resume_data.get('experience', [])
+    edu  = resume_data.get('education', [])
     skills = resume_data.get('skills', [])
     projects = resume_data.get('projects', [])
     certs = resume_data.get('certifications', [])
@@ -38,16 +79,22 @@ SUMMARY:
 {resume_data.get('summary', '')}
 
 EXPERIENCE ({len(exp)} entries):
-{chr(10).join(f"- {e.get('position')} at {e.get('company')} ({e.get('startDate')} - {e.get('endDate')}): {e.get('description','')[:200]}" for e in exp)}
+{chr(10).join(
+    f"- {e.get('position')} at {e.get('company')} ({e.get('startDate')} - {e.get('endDate')}): {str(e.get('description',''))[:200]}"
+    for e in exp
+)}
 
 EDUCATION ({len(edu)} entries):
-{chr(10).join(f"- {e.get('degree')} in {e.get('field')} from {e.get('institution')} ({e.get('graduationDate')})" for e in edu)}
+{chr(10).join(
+    f"- {e.get('degree')} in {e.get('field')} from {e.get('institution')} ({e.get('graduationDate')})"
+    for e in edu
+)}
 
 SKILLS ({len(skills)}):
 {', '.join(skills)}
 
 PROJECTS ({len(projects)}):
-{chr(10).join(f"- {p.get('title')}: {p.get('description','')[:100]}" for p in projects)}
+{chr(10).join(f"- {p.get('title')}: {str(p.get('description',''))[:100]}" for p in projects)}
 
 CERTIFICATIONS ({len(certs)}):
 {chr(10).join(f"- {c.get('name')} from {c.get('issuer')}" for c in certs)}
@@ -64,16 +111,16 @@ SCORING (0-100 for each):
 - experience: quantified achievements with numbers/%, multiple entries, clear titles?
 - skills: 8+ relevant industry-standard keywords?
 - education: institution, degree, field, graduation date all present?
-- overallScore: weighted average (completeness*0.10 + summary*0.15 + experience*0.25 + skills*0.20 + education*0.10 + 10 if projects exist + 10 if certs exist)
+- overallScore: weighted average (completeness*0.10 + summary*0.15 + experience*0.25 + skills*0.20 + education*0.10 + 10 if projects exist + 10 if certs exist, max 100)
 
 Suggestions — write as a friendly career coach using "you", be specific:
-Example: "Your summary is strong but only has 2 lines — a 3rd line mentioning your specialization can help recruiters shortlist you faster!"
+Example: "Your summary is strong but adding your key specialization can help recruiters shortlist you faster!"
 
 MISSING KEYWORDS: 8-12 in-demand keywords for this person's field they should add.
 PRESENT KEYWORDS: actual skills/tools found in the resume.
 STRENGTHS: 2-4 specific genuine strengths written naturally.
 
-Return this exact JSON structure:
+Return this EXACT JSON:
 {{
   "overallScore": 0,
   "sectionScores": {{
@@ -89,27 +136,12 @@ Return this exact JSON structure:
     {{
       "title": "",
       "detail": "",
-      "impact": "high|medium|low",
+      "impact": "high",
       "section": ""
     }}
   ],
   "strengths": []
 }}"""
 
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(
-            response_mime_type="application/json"
-        )
-    )
-
-    raw = response.text.strip()
-    if raw.startswith("```json"):
-        raw = raw[7:]
-    elif raw.startswith("```"):
-        raw = raw[3:]
-    if raw.endswith("```"):
-        raw = raw[:-3]
-
-    result = json.loads(raw.strip())
-    return result
+    raw = _call_with_rotation(prompt)
+    return json.loads(raw)

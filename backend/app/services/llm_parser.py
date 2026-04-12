@@ -4,11 +4,26 @@ import re
 import google.generativeai as genai
 from flask import current_app
 
+VISION_MODEL = 'gemini-2.5-flash'
+
+def _load_api_keys() -> list:
+    """Load all non-empty Gemini API keys from env (supports rotation)."""
+    keys = []
+    for i in range(1, 5):
+        k = os.environ.get(f"GEMINI_API_KEY_{i}", "").strip()
+        if k:
+            keys.append(k)
+    fallback = os.environ.get("GEMINI_API_KEY", "").strip()
+    if fallback and fallback not in keys:
+        keys.append(fallback)
+    return keys
+
 def configure_gemini():
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key or api_key == "your_gemini_api_key_here":
-        raise ValueError("GEMINI_API_KEY is not set in the environment.")
-    genai.configure(api_key=api_key)
+    """Configure Gemini with the first available API key."""
+    keys = _load_api_keys()
+    if not keys:
+        raise ValueError("No GEMINI_API_KEY set in environment.")
+    genai.configure(api_key=keys[0])
 
 import tempfile
 import docx
@@ -16,9 +31,11 @@ import io
 
 def parse_resume_with_gemini_vision(file_bytes: bytes, file_ext: str = ".pdf") -> dict:
     """Uses Google Gemini Multi-Modal API to parse document bytes directly (handles text & images)."""
-    configure_gemini()
-    
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    keys = _load_api_keys()
+    if not keys:
+        raise ValueError("No GEMINI_API_KEY set in environment.")
+
+    model = genai.GenerativeModel(VISION_MODEL)
     
     raw_text = ""
     gemini_file = None
@@ -131,41 +148,59 @@ You MUST extract the data from the attached document and ALWAYS return structure
     
     if raw_text:
         prompt += f"\n\nRESUME TEXT:\n{raw_text}"
-        
-    try:
-        if raw_text:
-            response = model.generate_content(prompt)
-        else:
-            response = model.generate_content([gemini_file, prompt])
-        
-        # Clean up from Gemini servers
-        if gemini_file:
+
+    # ── Key Rotation: try each key on quota errors ────────────────────────────
+    last_error = None
+    text_response = None
+    for idx, key in enumerate(keys):
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel(VISION_MODEL)
+            if raw_text:
+                response = model.generate_content(prompt)
+            else:
+                response = model.generate_content([gemini_file, prompt])
+            text_response = response.text
+            break  # success — stop rotating
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "quota" in err_str.lower() or "ResourceExhausted" in type(e).__name__:
+                print(f"[LLM] Key {idx+1}/{len(keys)} quota exhausted — rotating to next key...")
+                last_error = e
+                continue
+            else:
+                raise  # Non-quota error
+
+    # Clean up Gemini file upload regardless of outcome
+    if gemini_file:
+        try:
             genai.delete_file(gemini_file.name)
-            
-        text_response = response.text
-        
-        # Clean up any potential markdown formatting the LLM might have returned despite instructions
+        except Exception:
+            pass
+
+    if text_response is None:
+        raise last_error or RuntimeError("All API keys exhausted their quota.")
+
+    try:
         clean_json = text_response.strip()
         if clean_json.startswith("```json"):
             clean_json = clean_json[7:]
         elif clean_json.startswith("```"):
             clean_json = clean_json[3:]
-            
         if clean_json.endswith("```"):
             clean_json = clean_json[:-3]
-            
         clean_json = clean_json.strip()
-        
+
         parsed_data = json.loads(clean_json)
-        
+
         default_data = {
-            "fullName": "", "experience": [], "education": [], 
+            "fullName": "", "experience": [], "education": [],
             "skills": [], "projects": [], "certifications": []
         }
         for key in default_data:
             if key not in parsed_data:
                 parsed_data[key] = default_data[key]
-                
+
         return parsed_data
 
     except json.JSONDecodeError as e:
@@ -175,6 +210,5 @@ You MUST extract the data from the attached document and ALWAYS return structure
         current_app.logger.error(f"Error calling LLM: {str(e)}")
         raise e
     finally:
-        # Clean up local temporary file
         if tmp_path and os.path.exists(tmp_path):
             os.remove(tmp_path)
