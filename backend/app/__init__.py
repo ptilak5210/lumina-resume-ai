@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from config import Config
@@ -11,7 +11,12 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     db.init_app(app)
-    CORS(app)
+    CORS(app, origins="*")
+
+    # ── Health Check (keeps Render free server alive) ──────────────────────────
+    @app.route('/health')
+    def health():
+        return jsonify({'status': 'ok'}), 200
 
     # ── Register Blueprints ────────────────────────────────────────────────────
     from app.routes.resume import resume_bp
